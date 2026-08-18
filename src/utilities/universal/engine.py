@@ -1,9 +1,4 @@
 """Breaking probability engine for directional wave spectra.
-
-Spectra are represented as continuous directional variance density
-S(f, theta) with shape (frequency, angle), angles in radians on
-[-pi, pi), sorted ascending. GRIB spectra are normalised to that
-convention at the engine boundary.
 """
 
 from dataclasses import dataclass
@@ -31,7 +26,6 @@ class _SpectrumArrays:
 
 def breaking_probability(
 	wave_spectrum: WaveSpectrum,
-	peaks_flag: int = 0,
 	return_diagnostics: bool = False,
 	slope2: float = 2.0,
 ) -> Union[float, Dict[str, float]]:
@@ -42,17 +36,13 @@ def breaking_probability(
 	"""
 	wave_spectrum._require_variance_units("breaking_probability")
 
-	if peaks_flag not in (0, 1):
-		raise ValueError("peaks_flag must be 0 or 1.")
-
 	if is_zero_spectrum(wave_spectrum):
-		diagnostics = zero_breaking_diagnostics(peaks_flag)
+		diagnostics = zero_breaking_diagnostics()
 		wave_spectrum.breaking_probability_value = diagnostics["m0_breaking"]
 		wave_spectrum.wave_breaking_moments = {
 			"m0_breaking": diagnostics["m0_breaking"],
 			"m1_breaking": diagnostics["m1_breaking"],
 			"mss": diagnostics["mss"],
-			"peaks_flag": float(peaks_flag),
 		}
 		wave_spectrum.omega_0_value = diagnostics["Omega_0"]
 		wave_spectrum.max_slope_value = diagnostics["breaking_threshold"]
@@ -65,7 +55,6 @@ def breaking_probability(
 	diagnostics = _compute_breaking_moments(
 		wave_spectrum,
 		spectrum_arrays,
-		peaks_flag=peaks_flag,
 		slope2=slope2,
 	)
 
@@ -74,7 +63,6 @@ def breaking_probability(
 		"m0_breaking": diagnostics["m0_breaking"],
 		"m1_breaking": diagnostics["m1_breaking"],
 		"mss": diagnostics["mss"],
-		"peaks_flag": float(peaks_flag),
 	}
 	wave_spectrum.omega_0_value = diagnostics["Omega_0"]
 	wave_spectrum.max_slope_value = diagnostics["breaking_threshold"]
@@ -86,35 +74,7 @@ def breaking_probability(
 	return diagnostics["m0_breaking"]
 
 
-def wave_breaking_moments(
-	wave_spectrum: WaveSpectrum,
-	peaks_flag: int = 0,
-	slope2: float = 2.0,
-) -> Tuple[float, float, float, float, float]:
-	"""Return breaking moments (m0, m1, mss, Omega_0, breaking_threshold) for a WaveSpectrum."""
-	wave_spectrum._require_variance_units("wave_breaking_moments")
-	if is_zero_spectrum(wave_spectrum):
-		diagnostics = zero_breaking_diagnostics(peaks_flag)
-		return (
-			diagnostics["m0_breaking"],
-			diagnostics["m1_breaking"],
-			diagnostics["mss"],
-			diagnostics["Omega_0"],
-			diagnostics["breaking_threshold"],
-		)
-	diagnostics = _compute_breaking_moments(
-		wave_spectrum,
-		_prepare_spectrum(wave_spectrum),
-		peaks_flag=peaks_flag,
-		slope2=slope2,
-	)
-	return (
-		diagnostics["m0_breaking"],
-		diagnostics["m1_breaking"],
-		diagnostics["mss"],
-		diagnostics["Omega_0"],
-		diagnostics["breaking_threshold"],
-	)
+
 
 
 def is_zero_spectrum(wave_spectrum: WaveSpectrum) -> bool:
@@ -123,16 +83,14 @@ def is_zero_spectrum(wave_spectrum: WaveSpectrum) -> bool:
 	return not np.any(np.isfinite(spectrum) & (spectrum > 0.0))
 
 
-def zero_breaking_diagnostics(peaks_flag: int = 0) -> Dict[str, float]:
+def zero_breaking_diagnostics() -> Dict[str, float]:
 	"""Diagnostics used for land/empty spectra."""
 	return {
-		"pb": 0.0,
 		"m0_breaking": 0.0,
 		"m1_breaking": 0.0,
 		"mss": 0.0,
 		"Omega_0": 0.0,
 		"breaking_threshold": 0.0,
-		"peaks_flag": float(peaks_flag),
 	}
 
 
@@ -174,12 +132,9 @@ def _prepare_spectrum(wave_spectrum: WaveSpectrum) -> _SpectrumArrays:
 def _compute_breaking_moments(
 	wave_spectrum: WaveSpectrum,
 	spectrum_arrays: _SpectrumArrays,
-	peaks_flag: int = 0,
 	slope2: float = 2.0,
 ) -> Dict[str, float]:
 	"""Compute wave breaking moments from internal spectrum arrays."""
-	if peaks_flag not in (0, 1):
-		raise ValueError("peaks_flag must be 0 or 1.")
 
 	direction_matrix, wavenumber_matrix = _domain_matrices(spectrum_arrays)
 	directional_amplitude_spectrum = variance_to_amplitude_array(
@@ -203,29 +158,6 @@ def _compute_breaking_moments(
 	mu = pdf_moments(slope_magnitude_vector, breaking_slope_pdf, c=0.0, n=2)
 	m0_breaking = float(mu[0])
 	m1_breaking = float(mu[1])
-
-	if peaks_flag == 1:
-		full_slope_vector, full_slope_pdf, _ = longuet_higgins_slope_pdf_arrays(
-			direction_matrix,
-			wavenumber_matrix,
-			directional_amplitude_spectrum,
-			slope1=0.0,
-			slope2=2.0,
-			use_unidirectional_limit=bool(np.isclose(omega_0, 1.0, atol=1.0e-12)),
-			warning_context=_warning_context_from_metadata(wave_spectrum.metadata),
-		)
-		weighted_pdf = full_slope_pdf * full_slope_vector
-		weighted_integral = float(np.trapezoid(weighted_pdf, x=full_slope_vector))
-		if weighted_integral > 0.0:
-			weighted_pdf = weighted_pdf / weighted_integral
-			lower_index = int(np.argmin(np.abs(full_slope_vector - maximum_slope)))
-			m0_breaking = float(
-				np.trapezoid(
-					weighted_pdf[lower_index:],
-					x=full_slope_vector[lower_index:],
-				)
-			)
-			m1_breaking = m0_breaking
 
 	return {
 		"pb": m0_breaking,
@@ -258,24 +190,7 @@ def slope_pdf_output(wave_spectrum: WaveSpectrum) -> Tuple[np.ndarray, np.ndarra
 	return slope_magnitude_vector, slope_pdf
 
 
-def variance_to_amplitude_spectrum(wave_spectrum: WaveSpectrum) -> WaveSpectrum:
-	"""Return the amplitude spectrum as a WaveSpectrum."""
-	spectrum_arrays = _prepare_spectrum(wave_spectrum)
-	amplitude_spectrum = variance_to_amplitude_array(
-		spectrum_arrays.angle_vector,
-		spectrum_arrays.frequency_vector_hz,
-		spectrum_arrays.directional_variance_spectrum,
-	)
-	return WaveSpectrum(
-		spectrum_2d=amplitude_spectrum,
-		frequencies_hz=spectrum_arrays.frequency_vector_hz.copy(),
-		directions_deg=np.rad2deg(spectrum_arrays.angle_vector),
-		units="m",
-		source_file=wave_spectrum.source_file,
-		valid_time=wave_spectrum.valid_time,
-		metadata=dict(wave_spectrum.metadata),
-		depth=wave_spectrum.depth,
-	)
+
 
 
 def deep_water_wavenumber_vector(

@@ -163,4 +163,4 @@ def plot_experimental_comparison(
     cbar.set_label("Crossing angle $\\theta_\\times$ (deg)")
     cbar.set_ticks(np.linspace(0.0, 60.0, 4))
 
-    plt.show()
+    plt.show(block=False)

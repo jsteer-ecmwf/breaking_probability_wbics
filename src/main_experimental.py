@@ -1,23 +1,45 @@
-"""Reproduce SJTU bT plotting workflow from MATLAB.
+"""Calculate breaking probability of experiments run at SJTU.
 
-Reference MATLAB script:
-    extractData_crossanglecolor_maxPDF_master.m
+This module reproduces the analysis from Steer et al. using experimental wave
+spectrum data. It processes a pickle file containing:
+  - Variance spectra recorded at the facility
+  - Crossing angles for each experiment
+  - Spreading angles of component wave systems
 
-Run from the src/ directory:
-    python3 main_experimental.py
+Workflow:
+  1. Generate 2D directional spectra using 1D variance spectra with wrapped-normal
+     directional distributions based on given crossing and spreading angles.
+  2. Compute breaking probability using full directional information from
+     experiments (force=1).
+  3. Compute breaking probability using prescribed directional parameters
+     (force=2: 10° spreading, 0° crossing) for sensitivity comparison.
+  4. Fit linear regression between experimental bT parameter and breaking
+     probability for each condition with 95% confidence intervals.
+
+Outputs:
+  - Summary table of experimental parameters and results (printed and saved).
+  - Figure 4: Experimental vs modelled breaking probability with fit statistics.
+  - Scatter plot: Breaking probability vs significant wave height (force=1 data).
+
+Reference:
+    Steer et al. (see extractData_crossanglecolor_maxPDF_master.m in MATLAB)
+
+Usage:
+    python3 main_experimental.py  (run from src/ directory)
 """
 
 import pickle
 import sys
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 # Make 'utilities' importable when running directly from src/
 sys.path.insert(0, str(Path(__file__).parents[2]))
 
 from utilities.universal import engine as wave_engine
-from utilities.universal.classes import WaveSpectrum
+from utilities.universal.classes import WaveSpectrum, WaveSpectraCollection
 from utilities.experimental.main_experimental_helpers import (
     directional_pdf,
     fit_linear_with_ci,
@@ -29,13 +51,11 @@ from utilities.experimental.plots import plot_experimental_comparison
 # ---------------------------------------------------------------------------
 PICKLE_FILE = Path(__file__).parents[1] / "data" / "SJTU_bT.pkl"
 TABLE_OUTPUT_FILE = Path(__file__).parents[1] / "data" / "experimental_Hs_spread_cross_Omega0_table.txt"
-N_DIRECTIONS = 144
-MIN_SPREAD_DEG = 0.0
-F_MAX_HZ = 7.0
-# Scales Omega_0 before max-slope/breaking calculations (used for sensitivity analysis)
-OMEGA_0_SCALING = 1.0
-SLOPE_2 = 2.0
-SLOPE_INTERVAL = 0.01
+N_DIRECTIONS = 144 # Number of directions to use for 2D wave spectra
+F_MAX_HZ = 7.0 # Cutoff frequency to apply to experimental variance spectra
+OMEGA_0_SCALING = 1.0 # Scales Omega_0 before max-slope/breaking calculations (used for sensitivity analysis)
+SLOPE_2 = 2.0 # Maximum slope upto which to integrate the slope PDF
+SLOPE_INTERVAL = 0.01 # Interval of the slope vector of the slope PDF
 
 wave_engine.SLOPE_INTERVAL = SLOPE_INTERVAL
 
@@ -62,6 +82,7 @@ plot_marker = np.where(spread_all == 10.0, 20.0, 10.0)
 
 force_results = []
 experiment_summary_rows = []
+wave_spectra_force1 = []  # Store WaveSpectrum objects from force=1
 x_fit = np.linspace(0.0, 0.4, 20)
 
 for force in (1, 2):
@@ -85,7 +106,6 @@ for force in (1, 2):
             directions_rad,
             spread_deg,
             cross_deg,
-            min_spread_deg=MIN_SPREAD_DEG,
             warning_context=(
                 f"experiment={i + 1}, force={force}, "
                 f"spread_deg={spread_deg:.0f}, cross_deg={cross_deg:.0f}"
@@ -112,6 +132,10 @@ for force in (1, 2):
 
         breaking_probability = ws.breaking_probability(slope2=SLOPE_2)
         slope_exceedance[i] = breaking_probability
+
+        # Store WaveSpectrum objects from force=1 for later plotting
+        if force == 1:
+            wave_spectra_force1.append(ws)
 
         experiment_summary_rows.append(
             {
@@ -184,3 +208,7 @@ plot_experimental_comparison(
     x_fit=x_fit,
 )
 
+# Plot breaking probability vs Hs for the original data (force=1)
+wave_spectra_collection = WaveSpectraCollection(spectra=wave_spectra_force1)
+wave_spectra_collection.plot_breaking_probability_vs_swh()
+plt.show()

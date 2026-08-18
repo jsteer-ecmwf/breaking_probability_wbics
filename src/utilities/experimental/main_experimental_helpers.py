@@ -80,11 +80,10 @@ def directional_pdf(
     theta: np.ndarray,
     spread_deg: float,
     cross_deg: float,
-    min_spread_deg: float,
     warning_context: str | None = None,
 ) -> np.ndarray:
     """Two-partition directional PDF matching directionalisation_fun.m."""
-    sigma = np.deg2rad(max(spread_deg, min_spread_deg))
+    sigma = np.deg2rad(spread_deg)
     half_cross = np.deg2rad(cross_deg / 2.0)
 
     d1 = wrapped_normal_pdf(theta, mu=-half_cross, sigma=sigma, warning_context=warning_context)

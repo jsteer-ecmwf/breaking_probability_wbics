@@ -90,13 +90,6 @@ class WaveSpectrum:
             m0 = np.trapz(spectrum_1d, x=self.frequencies_hz)
         return float(4.0 * np.sqrt(max(m0, 0.0)))
 
-    def variance_to_amplitude_spectrum(self) -> "WaveSpectrum":
-        """Return an amplitude-spectrum WaveSpectrum converted from variance form."""
-        from utilities.universal.engine import variance_to_amplitude_spectrum
-
-        self._require_variance_units("variance_to_amplitude_spectrum")
-        return variance_to_amplitude_spectrum(self)
-
     def _prepared_directional_variance(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Return (angle_vector_rad, frequency_vector_hz, spectrum_sorted)."""
         self._require_variance_units("_prepared_directional_variance")
@@ -211,28 +204,12 @@ class WaveSpectraCollection:
             "Unsupported field_name. Expected 'swh' or 'breaking_probability'."
         )
 
-    def plot_field(
-        self,
-        field_name: str = "swh",
-        missing_value: Optional[float] = None,
-        discrete: bool = False,
-    ):
-        """Plot a scalar field from all spectra on a cartopy map."""
-        from utilities.universal.plots import plot_wave_spectra_field
-
-        return plot_wave_spectra_field(
-            self.spectra,
-            field_name=field_name,
-            missing_value=missing_value,
-            discrete=discrete,
-        )
-
     def plot_breaking_probability_vs_swh(self):
         """Scatter plot of breaking probability against significant wave height."""
         import matplotlib.pyplot as plt
 
         swh_values = np.array([ws.swh() for ws in self.spectra], dtype=float)
-        pb_values = np.array([ws.breaking_probability() for ws in self.spectra], dtype=float)
+        pb_values = np.array([ws.breaking_probability_value for ws in self.spectra], dtype=float)
         positive_mask = pb_values > 0.0
 
         fig, ax = plt.subplots(figsize=(7.0, 5.0))
