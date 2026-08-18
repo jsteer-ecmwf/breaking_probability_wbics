@@ -1,0 +1,22 @@
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Data
+# Experimental data in original Matlab file
+data/SJTU_bT.mat
+
+# Any GRIB files (usually large and not necessarily open-source)
+*.grib*
+
+# Defunct conversion script
+src/utilities/experimental/mat_to_pickle.py
+
+# Undeveloped additional programs not ready for dissemination
+src/main_explore.py
+src/main_global_wave_breaking_maps.py
+src/main_grib.py
+src/utilities/grib_program/*
+data/retrieval
+data/spectra.request
