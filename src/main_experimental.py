@@ -78,8 +78,6 @@ n_experiments = int(bT_all.size)
 directions_deg = np.linspace(-180.0, 180.0, N_DIRECTIONS + 1)[:-1]
 directions_rad = np.deg2rad(directions_deg)
 
-plot_marker = np.where(spread_all == 10.0, 20.0, 10.0)
-
 force_results = []
 experiment_summary_rows = []
 wave_spectra_force1 = []  # Store WaveSpectrum objects from force=1
@@ -204,7 +202,7 @@ plot_experimental_comparison(
     force_results=force_results,
     bT_all=bT_all,
     cross_all=cross_all,
-    plot_marker=plot_marker,
+    spread_all=spread_all,
     x_fit=x_fit,
 )
 

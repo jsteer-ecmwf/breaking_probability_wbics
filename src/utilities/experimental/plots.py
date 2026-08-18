@@ -11,10 +11,15 @@ def plot_experimental_comparison(
     force_results: list[dict],
     bT_all: np.ndarray,
     cross_all: np.ndarray,
-    plot_marker: np.ndarray,
+    spread_all: np.ndarray,
     x_fit: np.ndarray,
 ) -> None:
     """Render the experimental comparison figure used by main_experimental."""
+    # Dynamically assign markers to unique spread values
+    markers = ("^", "o", "s", "D", "v")  # Triangle, circle, square, diamond, inverted triangle
+    unique_spreads = sorted(np.unique(spread_all))
+    spread_to_marker = {float(spread): markers[i % len(markers)] for i, spread in enumerate(unique_spreads)}
+    plot_marker_types = np.array([spread_to_marker[float(s)] for s in spread_all])
     plt.style.use("seaborn-v0_8-whitegrid")
 
     cmap = plt.get_cmap("viridis", 6)
@@ -67,48 +72,35 @@ def plot_experimental_comparison(
             zorder=5,
         )
 
-        idx_10 = plot_marker == 10.0
-        idx_20 = plot_marker == 20.0
-
-        ax.scatter(
-            bT_all[idx_10],
-            y[idx_10],
-            s=plot_marker[idx_10] + 26.0,
-            c="k",
-            alpha=0.9,
-            zorder=3,
-        )
-        sc = ax.scatter(
-            bT_all[idx_10],
-            y[idx_10],
-            s=plot_marker[idx_10] + 14.0,
-            c=cross_all[idx_10],
-            cmap=cmap,
-            norm=norm,
-            edgecolors="white",
-            linewidths=0.5,
-            zorder=4,
-        )
-
-        ax.scatter(
-            bT_all[idx_20],
-            y[idx_20],
-            s=plot_marker[idx_20] + 26.0,
-            c="k",
-            alpha=0.9,
-            zorder=3,
-        )
-        ax.scatter(
-            bT_all[idx_20],
-            y[idx_20],
-            s=plot_marker[idx_20] + 14.0,
-            c=cross_all[idx_20],
-            cmap=cmap,
-            norm=norm,
-            edgecolors="white",
-            linewidths=0.5,
-            zorder=4,
-        )
+        # Plot each unique spread with its assigned marker
+        for spread_val in unique_spreads:
+            marker = spread_to_marker[spread_val]
+            mask = plot_marker_types == marker
+            
+            # Black outline scatter
+            ax.scatter(
+                bT_all[mask],
+                y[mask],
+                s=60,
+                marker=marker,
+                c="k",
+                alpha=0.9,
+                zorder=3,
+            )
+            # Colored interior scatter
+            if np.any(mask):
+                sc = ax.scatter(
+                    bT_all[mask],
+                    y[mask],
+                    s=48,
+                    marker=marker,
+                    c=cross_all[mask],
+                    cmap=cmap,
+                    norm=norm,
+                    edgecolors="white",
+                    linewidths=0.5,
+                    zorder=4,
+                )
 
         ax.set_ylabel("$p_B$")
         ax.set_ylim(bottom=0.0)
@@ -145,11 +137,19 @@ def plot_experimental_comparison(
     axes[0].text(0.01, 0.98, "a", transform=axes[0].transAxes, va="top", ha="left", fontweight="bold")
     axes[1].text(0.01, 0.98, "b", transform=axes[1].transAxes, va="top", ha="left", fontweight="bold")
 
-    scatplt1 = axes[1].scatter([], [], s=24, c="k", alpha=0.85)
-    scatplt2 = axes[1].scatter([], [], s=34, c="k", alpha=0.85)
+    # Legend for directional spread using distinct markers
+    scatter_handles = []
+    scatter_labels = []
+    for spread_val in unique_spreads:
+        marker = spread_to_marker[spread_val]
+        scatter_handles.append(
+            axes[1].scatter([], [], s=48, marker=marker, c="k", alpha=0.85, edgecolors="white", linewidths=0.5)
+        )
+        scatter_labels.append(f"$\\sigma_\\theta = {spread_val:.0f}^\\circ$")
+    
     axes[1].legend(
-        [scatplt1, scatplt2],
-        ["$\\sigma_\\theta = 5^\\circ$", "$\\sigma_\\theta = 10^\\circ$"],
+        scatter_handles,
+        scatter_labels,
         loc="lower right",
         fontsize=9,
         frameon=True,
