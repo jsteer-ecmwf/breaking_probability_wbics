@@ -31,7 +31,7 @@ def wrapped_normal_pdf(
                 "========================================\n"
                 "spread=0 detected.\n"
                 f"{_warning_context_suffix(warning_context)}"
-                "Assuming a unidirectional sea.\n"
+                "Assuming a unidirectional wave system within the spectrum.\n"
                 "Placing all directional energy in the only available theta bin.\n"
                 "========================================\n",
                 RuntimeWarning,
@@ -55,7 +55,7 @@ def wrapped_normal_pdf(
             "========================================\n"
             "spread=0 detected.\n"
             f"{_warning_context_suffix(warning_context)}"
-            "Assuming a unidirectional sea.\n"
+            "Assuming a unidirectional wave system within the spectrum.\n"
             "Replacing the wrapped normal with a delta at the nearest theta bin.\n"
             "========================================\n",
             RuntimeWarning,
