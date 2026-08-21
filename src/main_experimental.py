@@ -49,7 +49,7 @@ from utilities.experimental.plots import plot_experimental_comparison
 # ---------------------------------------------------------------------------
 # Hardcoded paths / parameters  (match MATLAB)
 # ---------------------------------------------------------------------------
-PICKLE_FILE = Path(__file__).parents[1] / "data" / "SJTU_bT_stripped.pkl"
+PICKLE_FILE = Path(__file__).parents[1] / "data" / "SJTU_bT.pkl"
 TABLE_OUTPUT_FILE = Path(__file__).parents[1] / "data" / "experimental_Hs_spread_cross_Omega0_table.txt"
 N_DIRECTIONS = 144 # Number of directions to use for 2D wave spectra
 F_MIN_HZ = 0.0 # Cutoff frequency to apply to experimental variance spectra
