@@ -146,6 +146,7 @@ for force in (1, 2):
                 "spread_deg": int(round(spread_deg)),
                 "cross_deg": int(round(cross_deg)),
                 "omega_0": 1 - omega_0,
+                "max_slope": ws.max_slope_value,
                 "breaking_probability": breaking_probability,
             }
         )
@@ -182,7 +183,7 @@ with np.errstate(invalid="ignore", divide="ignore"):
     pb_ratio = np.where(pb_by_force[2] > 0.0, pb_by_force[1] / pb_by_force[2], np.nan)
 
 table_header = (
-    f"{'experiment':>10} {'Hs_m':>8} {'spread_deg':>11} {'cross_deg':>10} {'Omega_0':>9} {'pb_exp':>8} {'pb_mod':>8} {'pb_ref':>8} {'pb_ratio':>9}"
+    f"{'experiment':>10} {'Hs_m':>8} {'spread_deg':>11} {'cross_deg':>10} {'Omega_0':>9} {'max_slope':>10} {'pb_exp':>8} {'pb_mod':>8} {'pb_ref':>8} {'pb_ratio':>9}"
 )
 table_separator = "-" * len(table_header)
 table_lines = [
@@ -200,6 +201,7 @@ for row in rows_f1:
     table_lines.append(
         f"{row['experiment']:>10d} {row['hs']:>8.2f} "
         f"{row['spread_deg']:>11d} {row['cross_deg']:>10d} {row['omega_0']:>9.2f} "
+        f"{row['max_slope']:>10.4f} "
         f"{bT_all[i]:>8.4f} {row['breaking_probability']:>8.4f} {pb_ref:>8.4f} {ratio_str}"
     )
 
