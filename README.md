@@ -1,6 +1,6 @@
 # Breaking Probability — WBICS
 
-Python implementation of the wave-breaking probability method from Steer et al.,
+Python implementation of the wave-breaking probability method from Steer et al. (under review),
 applied to SJTU crossing-sea experiments.
 
 ## Repository layout
@@ -38,7 +38,7 @@ python3 main_experimental.py
 
 ## `main_experimental.py` — reproduces paper results
 
-This is the primary script. It reproduces Figure 4 from Steer et al. using the
+This is the primary script. It reproduces Figure 4 from Steer et al. (under review) using the
 SJTU experimental dataset.
 
 ### Input
@@ -120,7 +120,7 @@ Outputs:
 
 ## Experimental Data
 
-This repository includes supplementary data for Steer et al. (2026), published in
+This repository includes supplementary data for Steer et al. (under review), published in
 Geophysical Research Letters. The data file (`data/SJTU_bT.pkl`) contains
 measurements from the experiments presented in that paper, stored as a Python
 dictionary with the following fields:
