@@ -49,13 +49,15 @@ from utilities.experimental.plots import plot_experimental_comparison
 # ---------------------------------------------------------------------------
 # Hardcoded paths / parameters  (match MATLAB)
 # ---------------------------------------------------------------------------
-PICKLE_FILE = Path(__file__).parents[1] / "data" / "SJTU_bT.pkl"
+PICKLE_FILE = Path(__file__).parents[1] / "data" / "SJTU_bT_stripped.pkl"
 TABLE_OUTPUT_FILE = Path(__file__).parents[1] / "data" / "experimental_Hs_spread_cross_Omega0_table.txt"
 N_DIRECTIONS = 144 # Number of directions to use for 2D wave spectra
+F_MIN_HZ = 0.0 # Cutoff frequency to apply to experimental variance spectra
 F_MAX_HZ = 7.0 # Cutoff frequency to apply to experimental variance spectra
 OMEGA_0_SCALING = 1.0 # Scales Omega_0 before max-slope/breaking calculations (used for sensitivity analysis)
 SLOPE_2 = 2.0 # Maximum slope upto which to integrate the slope PDF
 SLOPE_INTERVAL = 0.01 # Interval of the slope vector of the slope PDF
+LOG_PB_AXIS = False # If True, use log scale on the p_B axis of the scatter plot
 
 wave_engine.SLOPE_INTERVAL = SLOPE_INTERVAL
 
@@ -81,6 +83,7 @@ directions_rad = np.deg2rad(directions_deg)
 force_results = []
 experiment_summary_rows = []
 wave_spectra_force1 = []  # Store WaveSpectrum objects from force=1
+pb_by_force = {}  # pb_by_force[force] = array of breaking probabilities
 x_fit = np.linspace(0.0, 0.4, 20)
 
 for force in (1, 2):
@@ -90,7 +93,7 @@ for force in (1, 2):
         freq = freq_all[:, i]
         spec_1d = variance_all[:, i]
 
-        mask = freq < F_MAX_HZ
+        mask = (freq > F_MIN_HZ) & (freq < F_MAX_HZ)
         freq = freq[mask]
         spec_1d = spec_1d[mask]
 
@@ -149,6 +152,7 @@ for force in (1, 2):
 
     fit = fit_linear_with_ci(bT_all, slope_exceedance, x_fit)
     m_fit_0 = float(np.dot(bT_all, slope_exceedance) / np.dot(bT_all, bT_all))
+    pb_by_force[force] = slope_exceedance.copy()
 
     force_results.append(
         {
@@ -173,21 +177,30 @@ for force in (1, 2):
     )
 
 
+# pb_ratio[i] = pb_force1[i] / pb_force2[i]; nan where force=2 pb is zero
+with np.errstate(invalid="ignore", divide="ignore"):
+    pb_ratio = np.where(pb_by_force[2] > 0.0, pb_by_force[1] / pb_by_force[2], np.nan)
+
 table_header = (
-    f"{'experiment':>10} {'force':>6} {'Hs_m':>8} {'spread_deg':>11} {'cross_deg':>10} {'Omega_0':>9} {'pb':>8}"
+    f"{'experiment':>10} {'Hs_m':>8} {'spread_deg':>11} {'cross_deg':>10} {'Omega_0':>9} {'pb_exp':>8} {'pb_mod':>8} {'pb_ref':>8} {'pb_ratio':>9}"
 )
 table_separator = "-" * len(table_header)
 table_lines = [
-    "Experimental summary table (Hs, spread_deg, cross_deg, Omega_0, pb)",
+    "Experimental summary table (pb_exp=measured bT, pb_mod=force1, pb_ref=force2, pb_ratio=pb_mod/pb_ref)",
     table_header,
     table_separator,
 ]
 
-for row in experiment_summary_rows:
+# experiment_summary_rows contains force=1 rows first (experiments 1..n), then force=2
+rows_f1 = [r for r in experiment_summary_rows if r["force"] == 1]
+for row in rows_f1:
+    i = row["experiment"] - 1
+    pb_ref = pb_by_force[2][i]
+    ratio_str = f"{pb_ratio[i]:>9.3f}" if np.isfinite(pb_ratio[i]) else f"{'---':>9}"
     table_lines.append(
-        f"{row['experiment']:>10d} {row['force']:>6d} {row['hs']:>8.2f} "
+        f"{row['experiment']:>10d} {row['hs']:>8.2f} "
         f"{row['spread_deg']:>11d} {row['cross_deg']:>10d} {row['omega_0']:>9.2f} "
-        f"{row['breaking_probability']:>8.4f}"
+        f"{bT_all[i]:>8.4f} {row['breaking_probability']:>8.4f} {pb_ref:>8.4f} {ratio_str}"
     )
 
 table_text = "\n".join(table_lines)
@@ -204,9 +217,24 @@ plot_experimental_comparison(
     cross_all=cross_all,
     spread_all=spread_all,
     x_fit=x_fit,
+    log_pb_axis=LOG_PB_AXIS,
 )
 
 # Plot breaking probability vs Hs for the original data (force=1)
 wave_spectra_collection = WaveSpectraCollection(spectra=wave_spectra_force1)
 wave_spectra_collection.plot_breaking_probability_vs_swh()
+
+# Plot force=1 / force=2 pb ratio vs bT
+fig_ratio, ax_ratio = plt.subplots(figsize=(7, 5), constrained_layout=True)
+valid = np.isfinite(pb_ratio)
+sc_ratio = ax_ratio.scatter(
+    bT_all[valid], pb_ratio[valid],
+    c=spread_all[valid], cmap="viridis", s=36, edgecolors="k", linewidths=0.5,
+)
+ax_ratio.axhline(1.0, color="#111111", linewidth=1.5, linestyle="--")
+cbar_ratio = fig_ratio.colorbar(sc_ratio, ax=ax_ratio, pad=0.02)
+cbar_ratio.set_label("Directional spread $\\sigma_\\theta$ (deg)")
+ax_ratio.set_xlabel("$p_B$ (experimental)")
+ax_ratio.set_ylabel("$p_B$ (force=1) / $p_B$ (force=2)")
+ax_ratio.set_title("Effect of directional information on breaking probability")
 plt.show()

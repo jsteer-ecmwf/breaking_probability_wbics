@@ -6,6 +6,7 @@ __pycache__/
 # Data
 # Experimental data in original Matlab file
 data/SJTU_bT.mat
+data/SJTU_bT_archive.pkl
 
 # Any GRIB files (usually large and not necessarily open-source)
 *.grib*

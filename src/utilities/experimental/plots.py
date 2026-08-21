@@ -13,6 +13,7 @@ def plot_experimental_comparison(
     cross_all: np.ndarray,
     spread_all: np.ndarray,
     x_fit: np.ndarray,
+    log_pb_axis: bool = False,
 ) -> None:
     """Render the experimental comparison figure used by main_experimental."""
     # Dynamically assign markers to unique spread values
@@ -103,7 +104,10 @@ def plot_experimental_comparison(
                 )
 
         ax.set_ylabel("$p_B$")
-        ax.set_ylim(bottom=0.0)
+        if log_pb_axis:
+            ax.set_yscale("log")
+        else:
+            ax.set_ylim(bottom=0.0)
         ax.text(
             0.04,
             0.90,
