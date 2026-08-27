@@ -120,18 +120,32 @@ Outputs:
 
 ## Experimental Data
 
-This repository includes supplementary data for Steer et al. (under review), published in
-Geophysical Research Letters. The data file (`data/SJTU_bT.pkl`) contains
+This repository includes supplementary data for Steer et al. (under review in
+Geophysical Research Letters). The data file (`data/SJTU_bT.pkl`) contains
 measurements from the experiments presented in that paper, stored as a Python
-dictionary with the following fields:
+dictionary with the following fields.
 
-| Field                 | Shape       | Description                                                                  |
-|-----------------------|-------------|------------------------------------------------------------------------------|
-| `bT`                  | (1 × 28)    | Breaking probability observed for each experimental condition                |
-| `spread`              | (1 × 28)    | Directional spreading width in degrees for each experimental condition       |
-| `cross`               | (1 × 28)    | Directional crossing angle in degrees for each experimental condition        |
-| `frequency_vector_hz` | (25601 × 28)| Frequency vector in Hz for each experimental condition (one per column)      |
-| `variance_spectrum`   | (25601 × 28)| Variance spectrum in m²/Hz for each experimental condition (one per column)  |
+Symbols and data access mapping:
 
-The data file originated as a MATLAB structure named `data_out` and was converted
-to Python pickle format for use with this codebase.
+| Paper symbol | Meaning                              | Pickle key             | Variable used in `main_experimental.py` | Shape         |
+|--------------|--------------------------------------|------------------------|------------------------------------------|---------------|
+| `p_B`        | Breaking probability (experimental)  | `bT`                   | `bT_all`                                 | (1 × 28)      |
+| `\sigma_\theta` | Directional spreading angle         | `spread`               | `spread_all`                             | (1 × 28)      |
+| `\Delta\theta`  | Crossing angle                      | `cross`                | `cross_all`                              | (1 × 28)      |
+| `f`          | Frequency vector (Hz)                | `frequency_vector_hz`  | `freq_all`                               | (25601 × 28)  |
+| `S(f)`       | 1D variance density spectrum (m²/Hz) | `variance_spectrum`    | `variance_all`                           | (25601 × 28)  |
+
+Quick access example:
+
+```python
+import pickle
+
+with open("data/SJTU_bT.pkl", "rb") as fh:
+   data = pickle.load(fh)
+
+p_B = data["bT"]
+sigma_theta = data["spread"]
+Delta_theta = data["cross"]
+f = data["frequency_vector_hz"]
+S_f = data["variance_spectrum"]
+```
