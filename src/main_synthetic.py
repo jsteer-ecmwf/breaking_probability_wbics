@@ -30,12 +30,12 @@ HS = 0.4          # Significant wave height (m)
 TP = 2         # Peak period (s)
 GAMMA = 3.3       # JONSWAP peak enhancement factor
 F_MIN_HZ = 0.01   # Lower frequency limit (Hz)
-F_MAX_HZ_VALUES = [2.0,]  # Upper frequency limits to compare (Hz)
+F_MAX_HZ_VALUES = [7.0,]  # Upper frequency limits to compare (Hz)
 F_DELTA_HZ = 0.01 # Frequency resolution (Hz)
 N_DIRECTIONS = 144  # Number of directional bins
 
-CROSS_DEG_VALUES = np.array([0, 30, 60, 120], dtype=float)
-SPREAD_DEG_VALUES  = np.array([0, 5, 10, 20], dtype=float)
+CROSS_DEG_VALUES = np.array([0, 180], dtype=float)
+SPREAD_DEG_VALUES  = np.array([0, 0], dtype=float)
 
 # SPREAD_DEG_VALUES = np.arange(0.0, 55.0, 5.0)   # Directional spread angles (deg)
 # CROSS_DEG_VALUES = np.arange(0.0, 65.0, 5.0)    # Crossing angles (deg)
@@ -44,6 +44,7 @@ OMEGA_0_SCALING = 1.0 # Used for sensitivity analysis
 SLOPE_2 = 4.0
 SLOPE_INTERVAL = 0.01
 PRINT_OMEGA0 = True
+PRINT_MAXSLOPE = True
 
 wave_engine.SLOPE_INTERVAL = SLOPE_INTERVAL
 
@@ -58,12 +59,14 @@ cross_grid, spread_grid = np.meshgrid(CROSS_DEG_VALUES, SPREAD_DEG_VALUES)
 # Sweep over F_MAX_HZ values and crossing/spread angles
 # ---------------------------------------------------------------------------
 all_pb_grids = []
+all_max_slope_grids = []
 omega0_grid = np.full((len(SPREAD_DEG_VALUES), len(CROSS_DEG_VALUES)), np.nan)
 
 for f_max_hz in F_MAX_HZ_VALUES:
     frequencies_hz = np.arange(F_MIN_HZ, f_max_hz + F_DELTA_HZ, F_DELTA_HZ)
     spec_1d = jonswap_spectrum(frequencies_hz, hs=HS, tp=TP, gamma=GAMMA)
     pb_grid = np.full((len(SPREAD_DEG_VALUES), len(CROSS_DEG_VALUES)), np.nan)
+    max_slope_grid = np.full((len(SPREAD_DEG_VALUES), len(CROSS_DEG_VALUES)), np.nan)
 
     for i, spread_deg in enumerate(SPREAD_DEG_VALUES):
         for j, cross_deg in enumerate(CROSS_DEG_VALUES):
@@ -85,11 +88,13 @@ for f_max_hz in F_MAX_HZ_VALUES:
 
             ws.Omega_0(sensitivity_proportion=OMEGA_0_SCALING)
             pb_grid[i, j] = ws.breaking_probability(slope2=SLOPE_2)
+            max_slope_grid[i, j] = ws.max_slope_value
             # omega_0 is the same for all f_max; only store on first pass
             if omega0_grid[i, j] != omega0_grid[i, j]:  # is nan
                 omega0_grid[i, j] = 1 - ws.omega_0_value
 
     all_pb_grids.append(pb_grid)
+    all_max_slope_grids.append(max_slope_grid)
     print(f"f_max={f_max_hz} Hz done")
 
 if PRINT_OMEGA0:
@@ -102,6 +107,18 @@ if PRINT_OMEGA0:
     for i, spread_deg in enumerate(SPREAD_DEG_VALUES):
         row = "".join(f"{omega0_grid[i, j]:>{col_w}.4f}" for j in range(len(CROSS_DEG_VALUES)))
         print(f"{spread_deg:>12.1f}{row}")
+
+if PRINT_MAXSLOPE:
+    col_w = 10
+    cross_header = "".join(f"{'cross=' + str(int(c)):>{col_w}}" for c in CROSS_DEG_VALUES)
+    header = f"{'spread_deg':>12}{cross_header}"
+    for f_max_hz, max_slope_grid in zip(F_MAX_HZ_VALUES, all_max_slope_grids):
+        print(f"\nmax_slope table for f_max={f_max_hz} Hz:")
+        print(header)
+        print("-" * len(header))
+        for i, spread_deg in enumerate(SPREAD_DEG_VALUES):
+            row = "".join(f"{max_slope_grid[i, j]:>{col_w}.4f}" for j in range(len(CROSS_DEG_VALUES)))
+            print(f"{spread_deg:>12.1f}{row}")
 
 # Shared colour scale across all panels
 vmax = max(np.nanmax(g) for g in all_pb_grids)
