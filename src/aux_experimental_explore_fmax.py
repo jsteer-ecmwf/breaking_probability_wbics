@@ -100,12 +100,17 @@ for f_max_hz in F_MAX_HZ_VALUES:
 # R^2 convergence plot
 # ---------------------------------------------------------------------------
 x_fit = np.linspace(0.0, 0.4, 20)
-r2_values = [fit_linear_with_ci(bT_all, pb_results[f], x_fit)["r2"] for f in F_MAX_HZ_VALUES]
+fit_by_fmax = {f: fit_linear_with_ci(bT_all, pb_results[f], x_fit) for f in F_MAX_HZ_VALUES}
+r2_values = [fit_by_fmax[f]["r2"] for f in F_MAX_HZ_VALUES]
+gradient_values = [fit_by_fmax[f]["slope"] for f in F_MAX_HZ_VALUES]
 
-r2_header = f"{'f_max_hz':>12} {'R2':>8}"
+r2_header = f"{'f_max_hz':>12} {'R2':>8} {'gradient':>10}"
 r2_separator = "-" * len(r2_header)
 r2_lines = ["R^2 vs F_MAX_HZ", r2_header, r2_separator]
-r2_lines += [f"{f:>12.2f} {r2:>8.4f}" for f, r2 in zip(F_MAX_HZ_VALUES, r2_values)]
+r2_lines += [
+    f"{f:>12.2f} {r2:>8.4f} {m:>10.4f}"
+    for f, r2, m in zip(F_MAX_HZ_VALUES, r2_values, gradient_values)
+]
 print("\n" + "\n".join(r2_lines))
 
 fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)

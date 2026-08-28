@@ -35,7 +35,7 @@ F_DELTA_HZ = 0.01 # Frequency resolution (Hz)
 N_DIRECTIONS = 144  # Number of directional bins
 
 CROSS_DEG_VALUES = np.array([0, 180], dtype=float)
-SPREAD_DEG_VALUES  = np.array([0, 0], dtype=float)
+SPREAD_DEG_VALUES  = np.array([25, 30, 40, 50], dtype=float)
 
 # SPREAD_DEG_VALUES = np.arange(0.0, 55.0, 5.0)   # Directional spread angles (deg)
 # CROSS_DEG_VALUES = np.arange(0.0, 65.0, 5.0)    # Crossing angles (deg)
