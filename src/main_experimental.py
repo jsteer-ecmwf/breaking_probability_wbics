@@ -47,7 +47,7 @@ from utilities.experimental.main_experimental_helpers import (
 from utilities.experimental.plots import plot_experimental_comparison
 
 # ---------------------------------------------------------------------------
-# Hardcoded paths / parameters  (match MATLAB)
+# Hardcoded paths / parameters
 # ---------------------------------------------------------------------------
 PICKLE_FILE = Path(__file__).parents[1] / "data" / "SJTU_bT.pkl"
 TABLE_OUTPUT_FILE = Path(__file__).parents[1] / "data" / "experimental_Hs_spread_cross_Omega0_table.txt"
@@ -58,6 +58,9 @@ OMEGA_0_SCALING = 1.0 # Scales Omega_0 before max-slope/breaking calculations (u
 SLOPE_2 = 2.0 # Maximum slope upto which to integrate the slope PDF
 SLOPE_INTERVAL = 0.01 # Interval of the slope vector of the slope PDF
 LOG_PB_AXIS = False # If True, use log scale on the p_B axis of the scatter plot
+
+SPREAD_COUNTERFACTUAL=10.0
+CROSS_COUNTERFACTUAL=0.0
 
 wave_engine.SLOPE_INTERVAL = SLOPE_INTERVAL
 
@@ -100,8 +103,8 @@ for force in (1, 2):
         spread_deg = float(spread_all[i])
         cross_deg = float(cross_all[i])
         if force == 2:
-            spread_deg = 10.0
-            cross_deg = 0.0
+            spread_deg = SPREAD_COUNTERFACTUAL
+            cross_deg = CROSS_COUNTERFACTUAL
 
         D = directional_pdf(
             directions_rad,
